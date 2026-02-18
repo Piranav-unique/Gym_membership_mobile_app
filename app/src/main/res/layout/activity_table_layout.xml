@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Expense Report"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp" />
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stretchColumns="1"
+        android:layout_marginBottom="30dp">
+
+        <!-- Header -->
+        <TableRow>
+            <TextView android:text="Date" android:textStyle="bold" android:padding="8dp" />
+            <TextView android:text="Category" android:textStyle="bold" android:padding="8dp" />
+            <TextView android:text="Amount" android:textStyle="bold" android:padding="8dp" />
+        </TableRow>
+
+        <!-- Row 1 -->
+        <TableRow
+            android:id="@+id/row_food"
+            android:padding="4dp">
+
+            <TextView android:text="01/02/2026" android:padding="8dp" />
+            <TextView android:text="Food" android:padding="8dp" />
+            <TextView android:text="₹500" android:padding="8dp" />
+        </TableRow>
+
+        <!-- Row 2 -->
+        <TableRow
+            android:id="@+id/row_transport"
+            android:padding="4dp">
+
+            <TextView android:text="02/02/2026" android:padding="8dp" />
+            <TextView android:text="Transport" android:padding="8dp" />
+            <TextView android:text="₹200" android:padding="8dp" />
+        </TableRow>
+
+        <!-- Row 3 -->
+        <TableRow
+            android:id="@+id/row_shopping"
+            android:padding="4dp">
+
+            <TextView android:text="03/02/2026" android:padding="8dp" />
+            <TextView android:text="Shopping" android:padding="8dp" />
+            <TextView android:text="₹1200" android:padding="8dp" />
+        </TableRow>
+
+    </TableLayout>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Download Report" />
+
+</LinearLayout>

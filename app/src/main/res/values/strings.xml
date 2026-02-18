@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Smart-budget</string>
+
+    <string-array name="expense_categories">
+        <item>Food</item>
+        <item>Transport</item>
+        <item>Shopping</item>
+        <item>Entertainment</item>
+        <item>Bills</item>
+        <item>Health</item>
+        <item>Education</item>
+        <item>Others</item>
+    </string-array>
+</resources>
