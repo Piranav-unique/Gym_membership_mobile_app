@@ -1,150 +1,240 @@
 package com.example.appp
 
 import android.Manifest
-import android.app.DatePickerDialog
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.TimePickerDialog
+import android.app.*
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.View
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
-import java.util.Calendar
-
+import androidx.core.app.NotificationManagerCompat
+import com.google.android.gms.location.*
+import java.util.*
 
 class DetailActivity : AppCompatActivity() {
-    private val CHANNEL_ID = "booking_notification"
+
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private var currentLocation: Location? = null
+
+    private lateinit var tvSelectedDate: TextView
+    private lateinit var tvSelectedTime: TextView
+    private lateinit var progressBar: ProgressBar
+
+    private val CHANNEL_ID = "booking_channel"
+    private val LOCATION_PERMISSION_CODE = 101
+    private val NOTIFICATION_PERMISSION_CODE = 102
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_detail)
 
-        val title = intent.getStringExtra("text")
-        val imageRes = intent.getIntExtra("image", 0)
-
-        findViewById<TextView>(R.id.detailTitle).text = title
-        findViewById<ImageView>(R.id.detailImage).setImageResource(imageRes)
-
-        // Setup toolbar back button
         val toolbar = findViewById<Toolbar>(R.id.toolbar_detail)
         setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        val tvSelectedDate = findViewById<TextView>(R.id.tvSelectedDate)
-        val tvSelectedTime = findViewById<TextView>(R.id.tvSelectedTime)
-        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+        val detailImage = findViewById<ImageView>(R.id.detailImage)
+        val detailTitle = findViewById<TextView>(R.id.detailTitle)
+        val detailDescription = findViewById<TextView>(R.id.detailDescription)
+        val btnPickDate = findViewById<Button>(R.id.btnPickDate)
+        val btnPickTime = findViewById<Button>(R.id.btnPickTime)
         val btnBookSession = findViewById<Button>(R.id.btnBookSession)
 
-        findViewById<Button>(R.id.btnPickDate).setOnClickListener {
-            val c = Calendar.getInstance()
-            val year = c.get(Calendar.YEAR)
-            val month = c.get(Calendar.MONTH)
-            val day = c.get(Calendar.DAY_OF_MONTH)
+        tvSelectedDate = findViewById(R.id.tvSelectedDate)
+        tvSelectedTime = findViewById(R.id.tvSelectedTime)
+        progressBar = findViewById(R.id.progressBar)
 
-            val dpd = DatePickerDialog(this, { _, selectedYear, selectedMonth, selectedDay ->
-                tvSelectedDate.text = "$selectedDay/${selectedMonth + 1}/$selectedYear"
-            }, year, month, day)
-            dpd.show()
-        }
+        // Receive data from MainActivity
+        val workoutName = intent.getStringExtra("text") ?: "Workout"
+        val workoutImage = intent.getIntExtra("image", 0)
 
-        findViewById<Button>(R.id.btnPickTime).setOnClickListener {
-            val c = Calendar.getInstance()
-            val hour = c.get(Calendar.HOUR_OF_DAY)
-            val minute = c.get(Calendar.MINUTE)
+        detailTitle.text = workoutName
+        detailImage.setImageResource(workoutImage)
+        detailDescription.text = "Follow the instructions carefully for the best results."
 
-            val tpd = TimePickerDialog(this, { _, selectedHour, selectedMinute ->
-                tvSelectedTime.text = String.format("%02d:%02d", selectedHour, selectedMinute)
-            }, hour, minute, true)
-            tpd.show()
-        }
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        btnBookSession.setOnClickListener {
-            checkNotificationPermissionAndBook(title)
-        }
-
+        requestLocationPermission()
+        requestNotificationPermission()
         createNotificationChannel()
+
+        // Date Picker
+        btnPickDate.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            DatePickerDialog(
+                this,
+                { _, year, month, day ->
+                    tvSelectedDate.text = "$day/${month + 1}/$year"
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+
+        // Time Picker
+        btnPickTime.setOnClickListener {
+            val calendar = Calendar.getInstance()
+            TimePickerDialog(
+                this,
+                { _, hour, minute ->
+                    tvSelectedTime.text = "$hour:$minute"
+                },
+                calendar.get(Calendar.HOUR_OF_DAY),
+                calendar.get(Calendar.MINUTE),
+                true
+            ).show()
+        }
+
+        // Book Session
+        btnBookSession.setOnClickListener {
+            bookSession(workoutName)
+        }
     }
 
-    private fun checkNotificationPermissionAndBook(title: String?) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
-                return
+    // ================= LOCATION =================
+
+    private fun requestLocationPermission() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                LOCATION_PERMISSION_CODE
+            )
+        } else {
+            getLastLocation()
+        }
+    }
+
+    private fun getLastLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationClient.lastLocation.addOnSuccessListener {
+                currentLocation = it
             }
         }
-        performBooking(title)
     }
 
-    private fun performBooking(title: String?) {
-        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
-        val btnBookSession = findViewById<Button>(R.id.btnBookSession)
-        
-        progressBar.visibility = View.VISIBLE
-        btnBookSession.isEnabled = false
+    private fun getAddress(location: Location): String {
+        val geocoder = Geocoder(this, Locale.getDefault())
+        return try {
+            val list = geocoder.getFromLocation(
+                location.latitude,
+                location.longitude,
+                1
+            )
+            if (!list.isNullOrEmpty())
+                list[0].getAddressLine(0)
+            else
+                "Address unavailable"
+        } catch (e: Exception) {
+            "Unable to fetch address"
+        }
+    }
 
-        // Simulate booking process
-        Handler(Looper.getMainLooper()).postDelayed({
+    // ================= BOOK SESSION =================
+
+    private fun bookSession(workout: String) {
+
+        if (tvSelectedDate.text == "No Date Selected" ||
+            tvSelectedTime.text == "No Time Selected") {
+
+            Toast.makeText(this,
+                "Please select date and time",
+                Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        progressBar.visibility = View.VISIBLE
+
+        getLastLocation()
+
+        progressBar.postDelayed({
+
             progressBar.visibility = View.GONE
-            btnBookSession.isEnabled = true
-            showStatusNotification(title ?: "Gym Session")
-            Toast.makeText(this, "Booking Successful!", Toast.LENGTH_SHORT).show()
+
+            if (currentLocation != null) {
+
+                val lat = currentLocation!!.latitude
+                val lng = currentLocation!!.longitude
+                val address = getAddress(currentLocation!!)
+
+                val message = """
+                    Workout: $workout
+                    Date: ${tvSelectedDate.text}
+                    Time: ${tvSelectedTime.text}
+                    
+                    Lat: $lat
+                    Lng: $lng
+                    Address: $address
+                """.trimIndent()
+
+                showNotification("Session Booked ✅", message)
+
+                Toast.makeText(this,
+                    "Session Booked Successfully!",
+                    Toast.LENGTH_SHORT).show()
+
+            } else {
+                Toast.makeText(this,
+                    "Location not available",
+                    Toast.LENGTH_SHORT).show()
+            }
+
         }, 2000)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 101) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                val title = intent.getStringExtra("text")
-                performBooking(title)
-            } else {
-                Toast.makeText(this, "Notification permission denied. You won't see the booking confirmation.", Toast.LENGTH_LONG).show()
-                val title = intent.getStringExtra("text")
-                performBooking(title) // Still perform booking, just user won't see notification
-            }
-        }
-    }
+    // ================= NOTIFICATION =================
 
-    private fun showStatusNotification(workoutName: String) {
+    private fun showNotification(title: String, message: String) {
+
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Booking Successful")
-            .setContentText("Your $workoutName session has been booked!")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(1, builder.build())
+        with(NotificationManagerCompat.from(this)) {
+            notify(System.currentTimeMillis().toInt(), builder.build())
+        }
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Booking Notifications"
-            val descriptionText = "Channel for gym booking status"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Workout Booking",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+            manager.createNotificationChannel(channel)
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+                requestPermissions(
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE)
+            }
+        }
     }
 }
