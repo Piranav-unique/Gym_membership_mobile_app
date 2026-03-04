@@ -13,3 +13,45 @@
 .externalNativeBuild
 .cxx
 local.properties
+<<<<<<< HEAD
+=======
+
+# Android Studio
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+/.idea/modules.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea/caches
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Built variants
+/app/build
+/build
+
+# Log files
+*.log
+
+# Keystores
+*.jks
+*.keystore
+
+# Google Services
+google-services.json
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# OSX files
+.DS_Store
+
+# Java / Kotlin
+*.class
+
+>>>>>>> origin/main

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+<<<<<<< HEAD
     <item
         android:id="@+id/popup_view"
         android:title="View Details"/>
@@ -10,3 +11,21 @@
         android:id="@+id/popup_log"
         android:title="Log Workout"/>
 </menu>
+=======
+
+    <item
+        android:id="@+id/popup_add_income"
+        android:title="Add Income" />
+
+    <item
+        android:id="@+id/popup_add_expense"
+        android:title="Add Expense" />
+
+    <item
+        android:id="@+id/popup_view_report"
+        android:title="View Report" />
+
+</menu>
+
+
+>>>>>>> origin/main
